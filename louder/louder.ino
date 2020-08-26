@@ -1,0 +1,34 @@
+/*
+ * Project:Ewigkeit
+ * CodeName:canon
+ * Build:2020/08/26
+ * Author:torinosubako
+*/
+
+#include <M5StickCPlus.h>
+#include <IRremoteESP8266.h>
+#include <IRsend.h>
+
+const uint16_t Ir_Led = 9;
+IRsend irsend(Ir_Led);
+
+void setup() {
+  irsend.begin();
+
+  M5.begin();
+  M5.Lcd.setRotation(1);
+  M5.Lcd.fillScreen(TFT_BLACK);
+  M5.Lcd.println("IR Remote Control Test");
+  M5.Lcd.println("Press M5 button");
+}
+
+void loop() {
+  M5.update();
+
+  // M5ボタン(BtnA)が押されたとき
+  if (M5.BtnA.wasPressed()) {
+    // ここで赤外線信号を送信する
+    irsend.sendNEC(0x41C4F807, 32);
+    delay(100);
+  }
+}
