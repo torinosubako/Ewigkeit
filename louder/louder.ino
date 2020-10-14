@@ -1,15 +1,12 @@
+
 /*
  * Project:Ewigkeit
- * CodeName:Zeit(demonstrator)
- * Build:2020/10/13
+ * CodeName:Zeit(demonstrator:v2)
+ * Build:2020/10/14
  * Author:torinosubako
 */
 
-// これ以上の開発はM5StickCでは不可能(メモリ不足でコンパイルできない)
-
-// 環境に合わせてライブラリーを選択
-#include <M5StickCPlus.h>
-//#include <M5Stack.h>
+#include <M5Stack.h>
 
 // 連携系ライブラリ
 #include <WiFi.h>
@@ -24,7 +21,6 @@ WiFiClient client;
 
 
 // ピン指定情報
-// M5StickCのIRは9ピン
 // M5Stack-PLUSEMのIRは13ピン
 // M5Stack＋IR-UNITのIRは26ピン
 // 各GPIOに接続時は所定PINを指定のこと
@@ -107,12 +103,12 @@ void loop() {
     Serial.println(payload);
     //jsonオブジェクトの作成
     String json = payload;
-    DynamicJsonDocument besedata(4096);
+    DynamicJsonDocument besedata(768);
     deserializeJson(besedata, json);
     //リソースを解放
     http.end(); 
     //フラグメント抽出・識別
-    const int frag = besedata["Fragment"];
+    const int frag = besedata["Fragment"]["key"];
     Serial.println("データ受信結果");
     Serial.print(frag);
     if (frag == 0){
@@ -121,18 +117,77 @@ void loop() {
       delay(100);
       digitalWrite(GPIO_NUM_10, HIGH);
     } else {
-      Serial.println("前回更新時から変更がありました");
+      Serial.println("\n前回更新時から変更がありました");
       //詳細識別部
-      //開発中
-      //フラグメントリセット部(関数化？)
-      //開発中
-      //fragment_reset();
+      ir_post(json);
+      //フラグメントリセット部
+      fragment_reset(Reset_key);
     }
   } else {
     Serial.println("Error on HTTP request");
-    http.end(); //リソースを解放
   }
+  delay(600000);
 }
+
+//リモコン関数
+void ir_post(String json){
+  DynamicJsonDocument besedata(768);
+  deserializeJson(besedata, json);
+  const int AC_flag = besedata["Air_Con"]["Fragment"]["key"];
+  const int AC_off = besedata["Air_Con"]["Off"]["key"];
+  const int AC_Cool = besedata["Air_Con"]["Cooling"]["key"];
+  const int AC_Heat = besedata["Air_Con"]["Heating"]["key"];
+  
+  const int CF_flag = besedata["Cooling_Fan"]["Fragment"]["key"];
+  const int CF_off = besedata["Cooling_Fan"]["Switch"]["Off"]["key"];
+  const int CF_on = besedata["Cooling_Fan"]["Switch"]["On"]["key"];
+ 
+  const int TV_Off = besedata["TV"]["Off"]["key"];
+
+  //エアコン
+  if (AC_flag == 1){
+    if (AC_Cool == 1) {
+      Serial.println("エアコン制御:Cooling");
+    } else if (AC_Heat == 1) {
+      Serial.println("エアコン制御:Heating");
+    } else if (AC_off == 1) {
+      Serial.println("エアコン制御:OFF");
+    } else {//(AC_off == 1)
+      Serial.println("エアコン制御:現状維持");
+    }
+    fragment_reset("/Air_Con/Fragment");
+  }
+  
+  //扇風機
+  if (CF_flag == 1){
+    if (CF_on == 1) {
+      Serial.println("扇風機制御:ON");
+    } else if (CF_off == 1) {
+      Serial.println("扇風機制御:OFF");
+    } else {
+      Serial.println("扇風機制御:現状維持");
+    }
+    fragment_reset("/Cooling_Fan/Fragment");
+  }
+  
+  }
+
+//フラグメントリセット関数
+void fragment_reset(String Reset_flag){
+  DynamicJsonDocument doc(64);
+  doc["key"] = 0;
+  String json;
+  serializeJson(doc, json);
+
+  HTTPClient http;
+  http.begin(host_url + Reset_flag + auth_key);
+  http.addHeader("Content-Type", "application/json");
+  int status_code = http.PUT(json);
+  Serial.printf("status_code=%d\r\n", status_code);
+  http.end();
+}
+
+
 /* 
   //
   M5.update();
