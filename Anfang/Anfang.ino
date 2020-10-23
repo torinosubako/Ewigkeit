@@ -1,14 +1,14 @@
 
 /*
  * Project:Ewigkeit
- * CodeName:louder(complete)
+ * CodeName:Anfang(Prelude)
  * Build:2020/10/23
  * Author:torinosubako
 */
 
 #include <M5Stack.h>
 
-// 連携系ライブラリ
+// 連携系ライブラリ(Zeit継承)
 #include <WiFi.h>
 #include <ArduinoJson.h>
 #include <HTTPClient.h>
@@ -219,3 +219,4 @@ void fragment_reset(String Reset_flag){
   Serial.printf("status_code=%d\r\n", status_code);
   http.end();
 }
+  
