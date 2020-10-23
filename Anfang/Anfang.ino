@@ -1,14 +1,11 @@
-
 /*
  * Project:Ewigkeit
- * CodeName:Anfang(Prelude)
- * Build:2020/10/23
+ * CodeName:Anfang(Prelude.v1)
+ * Build:2020/10/24
  * Author:torinosubako
 */
-
-#include <M5Stack.h>
-
 // 連携系ライブラリ(Zeit継承)
+#include <M5Stack.h>
 #include <WiFi.h>
 #include <ArduinoJson.h>
 #include <HTTPClient.h>
@@ -39,7 +36,6 @@ int reno_cont;
 int reno_limit = 20;
 int wifi_cont;
 
-
 //基幹機能セットアップ
 void setup() {
   Serial.begin(115200);
@@ -50,9 +46,9 @@ void setup() {
   M5.Lcd.fillScreen(BLACK);
   M5.Lcd.setTextSize(2);
   M5.Lcd.println("IR Remote Controler");
-  M5.Lcd.println("Zeit-Demonstrator:");
-  M5.Lcd.println("Fire-Bird");
-  
+  M5.Lcd.println("Anfang-Demonstrator:");
+  M5.Lcd.println("Ringing Bloom");
+
   //送信確認用LEDセット(必要なら)
   //pinMode(GPIO_NUM_10, OUTPUT);
   
@@ -90,7 +86,7 @@ void loop() {
   Serial.println("リンクを確立しました");
   Serial.println(WiFi.localIP());
 
-  //情報処理関数(あとで関数化予定)
+  //情報処理関数
   HTTPClient http;
   http.begin(host_url + auth_key); //URLを指定
   int httpCode = http.GET();  //GETリクエストを送信
@@ -119,7 +115,7 @@ void loop() {
       //詳細識別部
       ir_post(json);
       //フラグメントリセット部
-      //fragment_reset(Reset_key);
+      fragment_reset(Reset_key);
     }
   } else {
     Serial.println("Error on HTTP request");
@@ -127,7 +123,7 @@ void loop() {
   delay(600000);
 }
 
-//リモコン関数
+//リモコン関数(PI:Andromeda)
 void ir_post(String json){
   DynamicJsonDocument besedata(768);
   deserializeJson(besedata, json);
@@ -136,43 +132,36 @@ void ir_post(String json){
   const int CF_flag = besedata["Cooling_Fan"]["Fragment"]["key"];
   const int li_flag = besedata["light"]["Fragment"]["key"];
   //エアコン制御
-  const int AC_off = besedata["Air_Con"]["Off"]["key"];
-  const int AC_Cool = besedata["Air_Con"]["Cooling"]["key"];
-  const int AC_Heat = besedata["Air_Con"]["Heating"]["key"];
+  const int AC_Mode = besedata["Air_Con"]["Mode"]["key"];
   const int AC_Temp = besedata["Air_Con"]["Temp"]["key"];
   const int AC_Fan = besedata["Air_Con"]["Fan"]["key"];
   //扇風機制御
-  const int CF_off = besedata["Cooling_Fan"]["Switch"]["Off"]["key"];
-  const int CF_on = besedata["Cooling_Fan"]["Switch"]["On"]["key"];
+  const int CF_Mode = besedata["Cooling_Fan"]["Mode"]["key"];
   //テレビ制御 
   const int TV_Off = besedata["TV"]["Off"]["key"];
   //照明制御
-  const int li_off = besedata["light"]["Off"]["key"];
-  const int li_on = besedata["light"]["On"]["key"];
+  const int li_Mode = besedata["light"]["Mode"]["key"];
   
   //エアコン
   if (AC_flag == 1){
     //赤外線デバイス初期化
-    ac.begin();  
-    if (AC_Cool == 1) {
+    ac.begin(); 
+    if (AC_Mode == 0) {
+      Serial.println("エアコン制御:OFF");
+      ac.off();
+    } else if (AC_Mode == 1) {
       Serial.println("エアコン制御:Cooling");
       ac.on();
       ac.setMode(kToshibaAcCool);
-      ac.setFan(AC_Fan);
-      ac.setTemp(AC_Temp);
-    } else if (AC_Heat == 1) {
+    } else if (AC_Mode ==2) {
       Serial.println("エアコン制御:Heating");
       ac.on();
       ac.setMode(kToshibaAcHeat);
-      ac.setFan(AC_Fan);
-      ac.setTemp(AC_Temp);
-    } else if (AC_off == 1) {
-      Serial.println("エアコン制御:OFF");
-      ac.off();
     } else {
       Serial.println("なにもしない");
-      //なにもしない
     }
+    ac.setFan(AC_Fan);
+    ac.setTemp(AC_Temp);
     ac.send();
     delay(1250);
     ac.send();
@@ -180,17 +169,22 @@ void ir_post(String json){
     fragment_reset("/Air_Con/Fragment");
   }
   
-  //扇風機
+  //扇風機(この辺煮詰めたい)
   if (CF_flag == 1){
-    if (CF_on == 1) {
-      Serial.println("扇風機制御:ON");
-      irsend.sendNEC(0x41C4F807, 32);
-    } else if (CF_off == 1) {
+    uint64_t fan_key;
+    //int fan_bit;
+    if (CF_Mode == 0) {
       Serial.println("扇風機制御:OFF");
-      irsend.sendNEC(0x41C4F807, 32);
+      fan_key = 0x41C4F807;
+    } else if (CF_Mode == 1) {
+      Serial.println("扇風機制御:OFF");
+      fan_key = 0x41C4F807;
     } else {
       Serial.println("扇風機制御:現状維持");
     }
+    irsend.sendNEC(fan_key, 32);
+    delay(1250);
+    irsend.sendNEC(fan_key, 32);
     fragment_reset("/Cooling_Fan/Fragment");
   }
   //TV制御
@@ -202,7 +196,6 @@ void ir_post(String json){
     delay(1250);
     fragment_reset("/TV/Off");
   } 
-  
 }
 
 //フラグメントリセット関数
@@ -211,7 +204,6 @@ void fragment_reset(String Reset_flag){
   doc["key"] = 0;
   String json;
   serializeJson(doc, json);
-
   HTTPClient http;
   http.begin(host_url + Reset_flag + auth_key);
   http.addHeader("Content-Type", "application/json");
@@ -219,4 +211,3 @@ void fragment_reset(String Reset_flag){
   Serial.printf("status_code=%d\r\n", status_code);
   http.end();
 }
-  

@@ -27,7 +27,16 @@ IRrecv irrecv(kRecvPin, kCaptureBufferSize, kTimeout, true);
 decode_results results;
 
 void setup() {
-Serial.begin(kBaudRate, SERIAL_8N1);
+  M5.begin();
+  M5.Lcd.fillScreen(TFT_BLACK);
+#if defined(ESP8266)
+  Serial.begin(kBaudRate, SERIAL_8N1, SERIAL_TX_ONLY);
+#else
+  Serial.begin(kBaudRate, SERIAL_8N1);
+#endif
+  while (!Serial)
+    delay(50);
+  Serial.printf("\n" D_STR_IRRECVDUMP_STARTUP "\n", kRecvPin);
 #if DECODE_HASH
   irrecv.setUnknownThreshold(kMinUnknownSize);
 #endif
@@ -35,10 +44,15 @@ Serial.begin(kBaudRate, SERIAL_8N1);
 }
 
 void loop() {
+  M5.Lcd.fillScreen(TFT_BLACK);
+  M5.Lcd.setCursor(0, 0);
+  M5.Lcd.setTextSize(2);
+  M5.Lcd.println("Neo-Aspect");
   if (irrecv.decode(&results)) {
+    M5.Lcd.println("Received!!");
     uint32_t now = millis();
     Serial.printf(D_STR_TIMESTAMP " : %06u.%03u\n", now / 1000, now % 1000);
-    if (results.overflow) //データがオーバーフローしたとき
+    if (results.overflow)
       Serial.printf(D_WARN_BUFFERFULL "\n", kCaptureBufferSize);
     Serial.println(D_STR_LIBRARY "   : v" _IRREMOTEESP8266_VERSION_ "\n");
     Serial.print(resultToHumanReadableBasic(&results));
@@ -48,9 +62,10 @@ void loop() {
 #if LEGACY_TIMING_INFO
     Serial.println(resultToTimingInfo(&results));
     yield();
-#endif
+#endif  // LEGACY_TIMING_INFO
     Serial.println(resultToSourceCode(&results));
     Serial.println();
     yield();
   }
+  delay(2500);
 }
