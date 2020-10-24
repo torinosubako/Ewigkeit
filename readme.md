@@ -5,3 +5,4 @@ Ewigkeitは、Googleが提供するモバイル・Webアプリケーション開
 
 
 # The operating principle of Ewigkeit
+![イメージ](https://github.com/torinosubako/Ewigkeit/blob/master/Ewigkeit_image.png)
