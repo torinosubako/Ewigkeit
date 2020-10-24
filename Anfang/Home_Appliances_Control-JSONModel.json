@@ -1,0 +1,42 @@
+{
+  "Home_Appliances_Control" :{
+    "Air_Con" : {
+      "Mode" : {
+        "key" : 0
+      },
+      "Temp" : {
+        "key" : 25
+      }, 
+      "Fan" : {
+        "key" : 0
+      },
+      "Fragment" : {
+        "key" : 1
+      }
+    },
+    "Cooling_Fan" : {
+      "Mode" : {
+        "key" : 0
+      },
+      "Fragment" : {
+        "key" : 1
+      }
+    },
+    "Fragment" : {
+      "key" : 1
+    },
+    "Light" : {
+      "Mode" : {
+        "key" : 0
+      },
+      "Fragment" : {
+        "key" : 1
+      }
+    },
+    "TV" : {
+      "Off" : {
+        "key" : 0
+      }
+    }
+  }
+}
