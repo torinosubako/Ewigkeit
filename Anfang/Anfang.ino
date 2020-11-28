@@ -1,7 +1,7 @@
 /*
  * Project:Ewigkeit
- * CodeName:Anfang(Prelude.v1)
- * Build:2020/10/24
+ * CodeName:Anfang(Full_Version)
+ * Build:2020/11/24
  * Author:torinosubako
 */
 // 連携系ライブラリ(Zeit継承)
@@ -35,6 +35,7 @@ const String Reset_key = //Your Reset Key//;
 int reno_cont;
 int reno_limit = 20;
 int wifi_cont;
+
 
 //基幹機能セットアップ
 void setup() {
@@ -130,7 +131,8 @@ void ir_post(String json){
   //デバイスフラグメントキー取得
   const int AC_flag = besedata["Air_Con"]["Fragment"]["key"];
   const int CF_flag = besedata["Cooling_Fan"]["Fragment"]["key"];
-  const int li_flag = besedata["light"]["Fragment"]["key"];
+  const int li_flag = besedata["Light"]["Fragment"]["key"];
+  
   //エアコン制御
   const int AC_Mode = besedata["Air_Con"]["Mode"]["key"];
   const int AC_Temp = besedata["Air_Con"]["Temp"]["key"];
@@ -140,24 +142,36 @@ void ir_post(String json){
   //テレビ制御 
   const int TV_Off = besedata["TV"]["Off"]["key"];
   //照明制御
-  const int li_Mode = besedata["light"]["Mode"]["key"];
+  const int li_Mode = besedata["Light"]["Mode"]["key"];
   
   //エアコン
   if (AC_flag == 1){
     //赤外線デバイス初期化
     ac.begin(); 
     if (AC_Mode == 0) {
-      Serial.println("エアコン制御:OFF");
-      ac.off();
+      Serial.println("エアコン制御:Auto_Mode");
+      ac.on();
+      ac.setMode(kToshibaAcAuto);
     } else if (AC_Mode == 1) {
       Serial.println("エアコン制御:Cooling");
       ac.on();
       ac.setMode(kToshibaAcCool);
-    } else if (AC_Mode ==2) {
+    } else if (AC_Mode == 2) {
+      Serial.println("エアコン制御:Drying");
+      ac.on();
+      ac.setMode(kToshibaAcDry);
+    } else if (AC_Mode == 3) {
       Serial.println("エアコン制御:Heating");
       ac.on();
       ac.setMode(kToshibaAcHeat);
-    } else {
+    } else if (AC_Mode == 4) {
+      Serial.println("エアコン制御:Blower");
+      ac.on();
+      ac.setMode(kToshibaAcFan);
+    } else if (AC_Mode == 7) {
+      Serial.println("エアコン制御:OFF");
+      ac.off();
+    } else{
       Serial.println("なにもしない");
     }
     ac.setFan(AC_Fan);
@@ -169,7 +183,7 @@ void ir_post(String json){
     fragment_reset("/Air_Con/Fragment");
   }
   
-  //扇風機(この辺煮詰めたい)
+  //扇風機
   if (CF_flag == 1){
     uint64_t fan_key;
     //int fan_bit;
@@ -177,7 +191,7 @@ void ir_post(String json){
       Serial.println("扇風機制御:OFF");
       fan_key = 0x41C4F807;
     } else if (CF_Mode == 1) {
-      Serial.println("扇風機制御:OFF");
+      Serial.println("扇風機制御:ON");
       fan_key = 0x41C4F807;
     } else {
       Serial.println("扇風機制御:現状維持");
@@ -195,8 +209,25 @@ void ir_post(String json){
     irsend.sendNEC(0x2FD48B7, 32);
     delay(1250);
     fragment_reset("/TV/Off");
-  } 
-}
+  }
+  
+  //照明制御
+  if (li_flag == 1){
+    uint64_t li_key;
+    if (li_Mode == 0) {
+      Serial.println("照明制御:OFF");
+      li_key = 0xCA0A68FC;
+    } else if (li_Mode == 1) {
+      Serial.println("照明制御:ON");
+      li_key = 0x5DF2C18E;
+    } else {
+      Serial.println("照明制御:現状維持");
+    }
+    irsend.sendData(li_key, 42);
+    delay(1250);
+    irsend.sendData(li_key, 42);
+    fragment_reset("/Light/Fragment");
+  }
 
 //フラグメントリセット関数
 void fragment_reset(String Reset_flag){

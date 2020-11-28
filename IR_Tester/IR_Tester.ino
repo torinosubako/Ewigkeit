@@ -1,7 +1,7 @@
 /*
  * Project:Ewigkeit
- * CodeName:canon
- * Build:2020/08/26
+ * CodeName:canon+tester_x
+ * Build:2020/11/28
  * Author:torinosubako
 */
 #include <M5StickCPlus.h>
@@ -12,7 +12,7 @@
 #include <IRtext.h>
 #include <IRutils.h>
 
-const uint16_t kRecvPin = 33; //受信ピン
+const uint16_t kRecvPin = 26; //受信ピン
 const uint32_t kBaudRate = 115200;
 const uint16_t kCaptureBufferSize = 1024;
 #if DECODE_AC
@@ -30,13 +30,13 @@ void setup() {
   M5.begin();
   M5.Lcd.fillScreen(TFT_BLACK);
 #if defined(ESP8266)
-  Serial.begin(kBaudRate, SERIAL_8N1, SERIAL_TX_ONLY);
+  //Serial.begin(kBaudRate, SERIAL_8N1, SERIAL_TX_ONLY);
 #else
-  Serial.begin(kBaudRate, SERIAL_8N1);
+  //Serial.begin(kBaudRate, SERIAL_8N1);
 #endif
   while (!Serial)
     delay(50);
-  Serial.printf("\n" D_STR_IRRECVDUMP_STARTUP "\n", kRecvPin);
+  //Serial.printf("\n" D_STR_IRRECVDUMP_STARTUP "\n", kRecvPin);
 #if DECODE_HASH
   irrecv.setUnknownThreshold(kMinUnknownSize);
 #endif
@@ -47,24 +47,31 @@ void loop() {
   M5.Lcd.fillScreen(TFT_BLACK);
   M5.Lcd.setCursor(0, 0);
   M5.Lcd.setTextSize(2);
-  M5.Lcd.println("Neo-Aspect");
+  M5.Lcd.println("Waiting..");
   if (irrecv.decode(&results)) {
+    M5.Lcd.setCursor(0, 0);
+    M5.Lcd.fillScreen(TFT_BLACK);
     M5.Lcd.println("Received!!");
     uint32_t now = millis();
-    Serial.printf(D_STR_TIMESTAMP " : %06u.%03u\n", now / 1000, now % 1000);
     if (results.overflow)
       Serial.printf(D_WARN_BUFFERFULL "\n", kCaptureBufferSize);
-    Serial.println(D_STR_LIBRARY "   : v" _IRREMOTEESP8266_VERSION_ "\n");
-    Serial.print(resultToHumanReadableBasic(&results));
-    String description = IRAcUtils::resultAcToString(&results);
-    if (description.length()) Serial.println(D_STR_MESGDESC ": " + description);
+    String value = String(resultToHexidecimal(&results));
+    Serial.println(value);
+    if (value == "0x5DF2C18E") {
+      M5.Lcd.println("light_ON");
+    } else if (value == "0xCA0A68FC") {
+      M5.Lcd.println("light_OFF");
+    } else if (value == "0x2FD48B7") {
+      M5.Lcd.println("TV_OFF");
+    } else if (value == "0x41C4F807") {
+      M5.Lcd.println("Cooling_Fan\nON/OFF");
+    } else
     yield();
 #if LEGACY_TIMING_INFO
     Serial.println(resultToTimingInfo(&results));
     yield();
 #endif  // LEGACY_TIMING_INFO
-    Serial.println(resultToSourceCode(&results));
-    Serial.println();
+    Serial.println("Fin");
     yield();
   }
   delay(2500);
