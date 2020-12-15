@@ -1,7 +1,7 @@
 /*
  * Project:Ewigkeit
- * CodeName:canon+tester_x
- * Build:2020/11/28
+ * CodeName:canon+tester_x2
+ * Build:2020/12/14
  * Author:torinosubako
 */
 #include <M5StickCPlus.h>
@@ -56,17 +56,21 @@ void loop() {
     if (results.overflow)
       Serial.printf(D_WARN_BUFFERFULL "\n", kCaptureBufferSize);
     String value = String(resultToHexidecimal(&results));
+    Serial.println(resultToSourceCode(&results));
     Serial.println(value);
     if (value == "0x5DF2C18E") {
       M5.Lcd.println("light_ON");
+    } else if (value == "0x7057E98C") {
+      M5.Lcd.println("light_Ch");
     } else if (value == "0xCA0A68FC") {
       M5.Lcd.println("light_OFF");
     } else if (value == "0x2FD48B7") {
       M5.Lcd.println("TV_OFF");
     } else if (value == "0x41C4F807") {
       M5.Lcd.println("Cooling_Fan\nON/OFF");
-    } else
-    yield();
+    } else {
+      M5.Lcd.println(value);
+    }
 #if LEGACY_TIMING_INFO
     Serial.println(resultToTimingInfo(&results));
     yield();
